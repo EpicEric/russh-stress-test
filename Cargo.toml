@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1.83"
+env_logger = "0.11.5"
+log = "0.4.22"
 russh = "0.46.0"
 russh-keys = "0.46.0"
 tokio = { version = "1.41.1", features = ["full"] }

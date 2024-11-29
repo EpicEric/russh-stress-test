@@ -5,15 +5,14 @@ use russh::{
     client,
     keys::key,
     server::{self, Server as _},
-    Channel, ChannelMsg,
+    Channel,
 };
 use russh_keys::key::{KeyPair, PublicKey};
 use tokio::{sync::RwLock, time::sleep};
 
-static PAYLOAD: &[u8] = b"Lorem ipsum";
-
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     let client_key = Arc::new(russh_keys::key::KeyPair::generate_ed25519());
     let tcp_handle: Arc<RwLock<Option<russh::server::Handle>>> = Default::default();
 
@@ -58,16 +57,12 @@ async fn main() {
         let lock = tcp_handle.read().await;
         let handle = lock.as_ref().unwrap();
         for _ in 0..step {
-            let mut channel = handle
+            let channel = handle
                 .channel_open_forwarded_tcpip("foo", 12345, "bar", 23456)
                 .await
                 .unwrap();
-            channel.data(&b"GET /lorem_ipsum.txt"[..]).await.unwrap();
-            match channel.wait().await.unwrap() {
-                russh::ChannelMsg::Data { data } => assert_eq!(data.as_ref(), PAYLOAD),
-                russh::ChannelMsg::Eof => (),
-                msg => panic!("Unhandle message {:?}", msg),
-            }
+            let mut _stream = channel.into_stream();
+            // ... Do some stuff ...
         }
         count += step;
     }
@@ -85,22 +80,14 @@ impl client::Handler for ClientHandler {
 
     async fn server_channel_open_forwarded_tcpip(
         &mut self,
-        channel: Channel<client::Msg>,
+        _channel: Channel<client::Msg>,
         _connected_address: &str,
         _connected_port: u32,
         _originator_address: &str,
         _originator_port: u32,
         _session: &mut client::Session,
     ) -> Result<(), Self::Error> {
-        tokio::spawn(async move {
-            let mut channel = channel;
-            match channel.wait().await.unwrap() {
-                ChannelMsg::Data { .. } => (),
-                _ => panic!("Unexpected message"),
-            }
-            let _ = channel.data(PAYLOAD).await;
-            let _ = channel.eof().await;
-        });
+        // Interacting with the channel isn't required to trigger the leak
         Ok(())
     }
 }
