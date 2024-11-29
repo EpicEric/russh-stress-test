@@ -1,0 +1,10 @@
+[package]
+name = "russh-stress-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1.83"
+russh = "0.46.0"
+russh-keys = "0.46.0"
+tokio = { version = "1.41.1", features = ["full"] }
